@@ -1,4 +1,5 @@
 from array_pipe import ArrayPipe
+from array_queue import ArrayQueue
 import ctypes
 import numpy
 import time
@@ -7,7 +8,7 @@ import sys
 from multiprocessing import Process, Pipe
 
 
-datasize = 2048*4
+datasize = 2048*10
 
 
 def operation(conn):
@@ -18,7 +19,6 @@ def operation(conn):
             #del data
     except EOFError:
         return
-        
 
 def test1():
     sender, receiver = ArrayPipe(ctypes.c_double*datasize, 20)
@@ -45,10 +45,8 @@ def operation2(conn):
     except EOFError:
         return
 
-
 def test2():
     receiver, sender = Pipe(False)
-    
     p = Process(target=operation2, args=(receiver,))
     p.start()
     data = numpy.linspace(0,1,datasize)
@@ -59,6 +57,7 @@ def test2():
         sender.send(None)
         sender.close()    
         p.join()
+        
         
 def operation3(conn):
     try:
@@ -89,6 +88,33 @@ def test3():
         sender.close()    
         receiver.close()
         p.join()
+        
+
+def operation4(Q):
+    try:
+        ct = 0
+        while True:
+            data = Q.get()
+            ct += 1
+            #a = data[0]+1
+            #del data
+    except EOFError:
+        print "test 4 total:", ct
+        return
+    
+def test4():
+    Q = ArrayQueue(ctypes.c_double*datasize, 20)
+    
+    p = Process(target=operation4, args=(Q,))
+    p.start()
+    data = numpy.linspace(0,1,datasize)
+    try:
+        for i in xrange(10000):
+            Q.put(data)
+    finally:
+        Q.close()    
+        p.join()
+    
 
 if __name__=="__main__":
     print "start"
@@ -98,6 +124,11 @@ if __name__=="__main__":
     start = time.time()
     test3()
     print "test3 took",time.time() - start
+    
+    start = time.time()
+    test4()
+    print "test4 took",time.time() - start
+    
     start = time.time()
     test2()
     print "test2 took",time.time() - start
