@@ -9,10 +9,12 @@ from multiprocessing import Process, Pipe
 
 
 datasize = 2048*10
+reps = 100000
 
 
 def operation(conn):
     try:
+        #data = conn.recv().copy()
         while True:
             data = conn.recv()
             #a = data[0]+1
@@ -27,7 +29,7 @@ def test1():
     p.start()
     data = numpy.linspace(0,1,datasize)
     try:
-        for i in xrange(10000):
+        for i in xrange(reps):
             sender.send(data)
     finally:
         sender.close()    
@@ -51,7 +53,7 @@ def test2():
     p.start()
     data = numpy.linspace(0,1,datasize)
     try:
-        for i in xrange(10000):
+        for i in xrange(reps):
             sender.send(data)
     finally:
         sender.send(None)
@@ -81,7 +83,7 @@ def test3():
     p.start()
     data = numpy.linspace(0,1,datasize)
     try:
-        for i in xrange(10000):
+        for i in xrange(reps):
             sender.send_bytes(data)
     finally:
         sender.send("\z")
@@ -92,24 +94,23 @@ def test3():
 
 def operation4(Q):
     try:
-        ct = 0
+        #data = Q.get().copy()
         while True:
             data = Q.get()
-            ct += 1
+            #ct += 1
             #a = data[0]+1
             #del data
     except EOFError:
-        print "test 4 total:", ct
         return
     
 def test4():
-    Q = ArrayQueue(ctypes.c_double*datasize, 20)
+    Q = ArrayQueue(ctypes.c_double*datasize, 4)
     
     p = Process(target=operation4, args=(Q,))
     p.start()
     data = numpy.linspace(0,1,datasize)
     try:
-        for i in xrange(10000):
+        for i in xrange(reps):
             Q.put(data)
     finally:
         Q.close()    
@@ -120,15 +121,26 @@ if __name__=="__main__":
     print "start"
     start = time.time()
     test1()
-    print "test1 took",time.time() - start
-    start = time.time()
-    test3()
-    print "test3 took",time.time() - start
+    print "test1  (ArrayPipe) took",time.time() - start
+    
+    time.sleep(3)
     
     start = time.time()
     test4()
-    print "test4 took",time.time() - start
+    print "test4 (ArrayQueue) took",time.time() - start
+    
+    time.sleep(3)
     
     start = time.time()
-    test2()
-    print "test2 took",time.time() - start
+    val = 0
+    while (time.time()-start) < 4.0:
+        val = val * 1.1
+    
+    
+    #start = time.time()
+    #test3()
+    #print "test3 (Pipe with buffer) took",time.time() - start
+    
+    #start = time.time()
+    #test2()
+    #print "test2 (Pipe with pickle) took",time.time() - start
