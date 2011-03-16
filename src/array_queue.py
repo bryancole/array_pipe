@@ -25,7 +25,8 @@ class ArrayQueue2(object):
         
     def put(self, scalar):
         with self.put_cond:
-            ### not finished ###
+            if self.stock_read.value == self.stock_write.value:
+                self.put_cond.wait()
 
 
 class ArrayQueue(object):
