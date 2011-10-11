@@ -6,6 +6,11 @@ from multiprocessing import Pipe
 
 
 def ArrayPipe(struct, bufsize=20):
+    """A simple pipe-like IPC mechanism based on shared memory and a pipe
+    to pass a pointer to that shared memory
+    
+    This class was a precursor to the array_queue module which now supercedes it.
+    """
     buffer = RawArray(struct, int(bufsize))
     a,b = Pipe()
     sender = ConnectionSender(buffer, a)

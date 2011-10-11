@@ -6,19 +6,17 @@ import time
 import sys
 
 from multiprocessing import Process, Pipe
+from numpy.ctypeslib import as_ctypes, as_array
 
 
-datasize = 2048*10
+datasize = 2048
 reps = 100000
 
 
 def operation(conn):
     try:
-        #data = conn.recv().copy()
         while True:
             data = conn.recv()
-            #a = data[0]+1
-            #del data
     except EOFError:
         return
 
@@ -74,7 +72,6 @@ def operation3(conn):
             ct += 1
     except EOFError:
         pass
-    print "total3", ct
     
 def test3():
     receiver, sender = Pipe(False)
@@ -94,21 +91,18 @@ def test3():
 
 def operation4(Q):
     try:
-        #data = Q.get().copy()
         while True:
             data = Q.get()
-            #ct += 1
-            #a = data[0]+1
-            #del data
     except EOFError:
         return
     
 def test4():
-    Q = ArrayQueue(ctypes.c_double*datasize, 4)
-    
+    ct = ctypes.c_double*datasize
+    Q = ArrayQueue(ct, 20)
     p = Process(target=operation4, args=(Q,))
     p.start()
-    data = numpy.linspace(0,1,datasize)
+    data = ct()
+    as_array(data)[:] = numpy.linspace(0,1,datasize)
     try:
         for i in xrange(reps):
             Q.put(data)
@@ -123,24 +117,20 @@ if __name__=="__main__":
     test1()
     print "test1  (ArrayPipe) took",time.time() - start
     
-    time.sleep(3)
+    time.sleep(1)
     
     start = time.time()
     test4()
     print "test4 (ArrayQueue) took",time.time() - start
     
-    time.sleep(3)
+    time.sleep(1)
     
     start = time.time()
-    val = 0
-    while (time.time()-start) < 4.0:
-        val = val * 1.1
+    test3()
+    print "test3 (Pipe with buffer) took",time.time() - start
     
+    time.sleep(1)
     
-    #start = time.time()
-    #test3()
-    #print "test3 (Pipe with buffer) took",time.time() - start
-    
-    #start = time.time()
-    #test2()
-    #print "test2 (Pipe with pickle) took",time.time() - start
+#    start = time.time()
+#    test2()
+#    print "test2 (Pipe with pickle) took",time.time() - start
