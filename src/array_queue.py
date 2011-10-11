@@ -150,9 +150,9 @@ class ArrayQueue(object):
         """struct - a ctypes object or numpy dtype
         size - number of slots in the buffer
         """
-        self.buffer = RawArray(struct, size)
-        #dt = numpy.dtype(struct)
-        #self.buffer = numpy.frombuffer(self._buffer, dtype=dt) 
+        buf = RawArray(struct, int(size))
+        self.buffer = buf
+        #self.buffer = numpy.frombuffer(buf, dtype=numpy.dtype(buf._type_))
         stock_out, stock_in = Pipe(duplex=False)
         queue_out, queue_in = Pipe(duplex=False)
         
@@ -160,8 +160,6 @@ class ArrayQueue(object):
         stock_in_lock = Lock()
         queue_out_lock = Lock()
         queue_in_lock = Lock()
-        
-        self.buffer_lock = Lock()
         
         self.stock_closed = RawValue('h', 0)
         self.queue_closed = RawValue('h', 0)
@@ -208,8 +206,7 @@ class ArrayQueue(object):
                 self.stock_closed.value = 1
                 raise EOFError
         
-        with self.buffer_lock:
-            self.buffer[idx] = scalar
+        self.buffer[idx] = scalar
         #print "sending", idx
         with queue_in_lock:
             queue_in.send(idx)
@@ -224,10 +221,16 @@ class ArrayQueue(object):
     def close(self):
         stock_out, stock_out_lock , queue_in, queue_in_lock = self._put_obj
         stock_in, stock_in_lock = self._ret_obj
+        
+        while not stock_out_lock.acquire(timeout=0.001):
+            with stock_in_lock:
+                stock_in.send(None)
+        self.stock_closed.value = 1
+        stock_out_lock.release()
+                
         with queue_in_lock:
             queue_in.send(None)
-        with stock_in_lock:
-            stock_in.send(None)
+        
         
     def get(self, block=True, timeout=None):        
         queue_out, lock = self._get_obj
@@ -254,8 +257,7 @@ class ArrayQueue(object):
                 self.queue_closed.value = 1
                 raise EOFError
         
-        with self.buffer_lock:
-            value = self.buffer[idx]
+        value = self.buffer[idx]
         #print "ID", id(value), sys.getrefcount(value)
         r = weakref.ref(value, self._finalise)
         self.map[id(r)]=(idx, r)
