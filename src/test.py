@@ -131,6 +131,6 @@ if __name__=="__main__":
     
     time.sleep(1)
     
-#    start = time.time()
-#    test2()
-#    print "test2 (Pipe with pickle) took",time.time() - start
+    start = time.time()
+    test2()
+    print "test2 (Pipe with pickle) took",time.time() - start

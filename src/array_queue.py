@@ -15,7 +15,9 @@ class ArrayQueue(object):
     Compared to the classes already available in multiprocessing, this
     queue has a number of interesting and useful properties:
      - true asynchronous action. Putting data on the queue never blocks
-       getting data off and vice-versa.
+       getting data off and vice-versa unless the queue is full or empty
+       respectively. By contrast, the bare multiprocessing Pipe object
+       has very little buffering capacity (set by the OS).
      - multi-producer, multi-consumer. The queue can be shared between
        any number of processes.
      - Proper FIFO action. Unlike the multiprocessing.queue class, this one
